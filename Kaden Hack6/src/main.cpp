@@ -7,17 +7,21 @@ const int STEP0 = 3;
 const int STEP1 = 11;
 const int PHR1 = A0;
 const int PHR2 = A1;
-const int PHR_ANS = 650;
+const int PHR_ANS = 800;
 const int RPM_5 = 22;
-const int RPM_90 = 307;
-const int BACK = 100;
+const int RPM_90 = 308;
+const int BACK = 200;
 const int JET = 333;
 const int SLP0 = 7;
 const int SLP1 = 8;
+const int RX = 10;
+const int TX = 12;
 
 int ans1;
 int ans2;
+int ans3;
 int p = 1;
+int runcnt=0;
 
 void setup()
 {
@@ -33,6 +37,7 @@ void setup()
   Serial.begin(9600); // 9600bpsでシリアル通信のポートを開きます
   pinMode(PHR1, INPUT);
   pinMode(PHR2, INPUT);
+  pinMode(RX, INPUT);
   pinMode(SERVO,OUTPUT);
   pinMode(DIR0, OUTPUT);
   pinMode(DIR1, OUTPUT);
@@ -40,39 +45,35 @@ void setup()
   pinMode(STEP1, OUTPUT);
   pinMode(SLP0,OUTPUT);
   pinMode(SLP1,OUTPUT);
-  digitalWrite(SLP0, HIGH);
-  digitalWrite(SLP1, HIGH);
+  pinMode(TX,OUTPUT);
+  digitalWrite(SLP0, LOW);
+  digitalWrite(SLP1, LOW);
+}
+
+void read_sensor(){
+  ans1 = analogRead(PHR1);
+  ans2 = analogRead(PHR2);
+  Serial.println(ans1);
+  Serial.println(ans2); // シリアルモニターに表示させる
 }
 
 void cw()
 {
-  for(int i = 500; i <= 1900; i += 100){
-    {
+  for(int k = 500; k <= 2400; k += 10){
     digitalWrite(SERVO,HIGH);
-    delayMicroseconds(i);
-    }
-    delay(1);
-    {
+    delayMicroseconds(k);
     digitalWrite(SERVO,LOW);
-    delayMicroseconds(20000-i);
-    }
-    delay(1);
+    delayMicroseconds(20000-k);
   }
 }
 
 void ccw()
 {
-  for(int i = 1900; i >= 500; i -= 100){
-    {
+  for(int k = 2400; k >= 500; k -= 10){
     digitalWrite(SERVO,HIGH);
-    delayMicroseconds(i);
-    }
-    delay(1);
-    {
+    delayMicroseconds(k);
     digitalWrite(SERVO,LOW);
-    delayMicroseconds(20000-i);
-    }
-    delay(1);
+    delayMicroseconds(20000-k);
   }
 }
 
@@ -86,10 +87,13 @@ void jet_stop()
 
 void jet()
 {
-  cw();
-  delay(10);
-  ccw();
-  delay(10);
+  if(runcnt>=10){
+    cw();
+    delay(300);
+    ccw();
+    delay(600);
+    runcnt=0;
+  }
 }
 
 void stop()
@@ -102,8 +106,6 @@ void stop()
 
 void go_forward()
 {
-  for (int j = 0; j < JET; j++)
-  {
     digitalWrite(DIR0, LOW);
     digitalWrite(DIR1, HIGH);
     digitalWrite(STEP0, HIGH);
@@ -112,8 +114,6 @@ void go_forward()
     digitalWrite(STEP0, LOW);
     digitalWrite(STEP1, LOW);
     delay(4);
-  }
-  jet();
 }
 
 void go_back()
@@ -180,27 +180,18 @@ void turn_left_90()
 {
   digitalWrite(DIR0, LOW);
   digitalWrite(DIR1, LOW);
-  digitalWrite(STEP0, HIGH);
+  digitalWrite(STEP1, HIGH);
 
   for (int i = 0; i < RPM_90; i++)
   {
-    digitalWrite(STEP1, HIGH);
+    digitalWrite(STEP0, HIGH);
     delay(6);
-    digitalWrite(STEP1, LOW);
+    digitalWrite(STEP0, LOW);
     delay(6);
   }
 }
 
-
-
-void read_sensor(){
-  ans1 = analogRead(PHR1);
-  ans2 = analogRead(PHR2);
-  Serial.println(ans1);
-  Serial.println(ans2); // シリアルモニターに表示させる
-}
-
-void run()
+void drive()
 {
   if (ans1 < PHR_ANS && ans2 < PHR_ANS)
   {
@@ -221,45 +212,87 @@ void run()
 
 void rotate_right()
 {
-      turn_left_90();
-      
+      turn_right_90();
+      read_sensor();
       if (ans1 < PHR_ANS && ans2 < PHR_ANS)
       {
-        turn_left_90();
+        turn_right_90();
       }
 
       else if (ans1 >= PHR_ANS && ans2 >= PHR_ANS)
       {
-        turn_left_90();
-        run();
+        turn_right_90();
+        drive();
         if (ans1 >= PHR_ANS && ans2 >= PHR_ANS)
         {
           stop();
           jet_stop();
+          digitalWrite(TX,HIGH);
         }
       } 
 }
 
 void rotate_left()
 {
-  turn_right_90();
-
+  turn_left_90();
+  read_sensor();
       if (ans1 < PHR_ANS && ans2 < PHR_ANS)
       {
-        turn_right_90();
+        turn_left_90();
       }
 
       else if (ans1 >= PHR_ANS && ans2 >= PHR_ANS)
       {
-        turn_right_90();
-        run();
+        turn_left_90();
+        drive();
         if (ans1 >= PHR_ANS && ans2 >= PHR_ANS)
         {
           stop();
           jet_stop();
+          digitalWrite(TX,HIGH);
         }
       } 
 }
+
+void run()
+{
+  if (ans1 >= PHR_ANS && ans2 >= PHR_ANS)
+  {
+    go_back();
+
+    if(p==1)
+    {
+      rotate_right();   
+      p=2;
+    }
+    
+    else if(p==2)
+    {
+      rotate_left();
+      p=1;
+    }
+  }
+  else if (ans1 < PHR_ANS && ans2 < PHR_ANS)
+  {
+    go_forward();
+    // read_sensor();
+  }
+  else if (ans1 < PHR_ANS && ans2 >= PHR_ANS)
+  {
+    turn_left_5();
+    // read_sensor();
+  }
+  else if (ans1 >= PHR_ANS && ans2 < PHR_ANS)
+  {
+    turn_right_5();
+    // read_sensor();
+  }
+  for(int l=0;l<27;l++){
+    go_forward();
+  }
+  runcnt++;
+}
+
 
 /*
 ISR (TIMER1_COMPA_vect) {
@@ -275,13 +308,27 @@ void loop()
   delay(50);           // 250ms時間待ちで繰り返す
   */
 
-  
   while(1){
+    ans3 = digitalRead(RX);
+    if(ans3 == 1){
+      digitalWrite(SLP0, HIGH);
+      digitalWrite(SLP1, HIGH); 
+      break;
+    }
+  }  
+
+  while(1){
+      if(digitalRead(RX)==0){
+        break;
+      }
       run();
       read_sensor();
+      jet();
   }
   
-
+  digitalWrite(SLP0, LOW);
+  digitalWrite(SLP1, LOW); 
+  digitalWrite(TX,HIGH);
   /*
   if (ans1 >= PHR_ANS && ans2 >= PHR_ANS)
   {
@@ -289,26 +336,4 @@ void loop()
   }
   */
 
-  
-  if (ans1 >= PHR_ANS && ans2 >= PHR_ANS)
-  {
-    go_back();
-
-    if(p==1)
-    {
-      {
-        rotate_right();
-      }   
-      p++;
-    }
-
-    if(p==2)
-    {
-      {
-        rotate_left();
-      }
-      p--;
-    }
-  }
-  
 }
