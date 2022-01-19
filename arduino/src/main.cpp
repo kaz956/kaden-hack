@@ -12,6 +12,7 @@ const int RPM_5 = 17;
 const int RPM_15 = 51;
 const int RPM_30 = 103;
 const int RPM_45 = 154;
+const int RPM_50 = 171;
 const int RPM_60 = 205;
 const int RPM_75 = 257;
 const int RPM_90 = 308;
@@ -155,13 +156,13 @@ void turn_right_5()
   }
 }
 
-void turn_right_50()
+void turn_right_135()
 {
   digitalWrite(DIR0, HIGH);
   digitalWrite(DIR1, HIGH);
   digitalWrite(STEP1, HIGH);
 
-  for (int i = 0; i < RPM_50; i++)
+  for (int i = 0; i < RPM_135; i++)
   {
     digitalWrite(STEP0, HIGH);
     delay(6);
@@ -200,13 +201,13 @@ void turn_left_5()
   }
 }
 
-void turn_left_50()
+void turn_left_135()
 {
   digitalWrite(DIR0, LOW);
   digitalWrite(DIR1, LOW);
   digitalWrite(STEP0, HIGH);
 
-  for (int i = 0; i < RPM_50; i++)
+  for (int i = 0; i < RPM_135; i++)
   {
     digitalWrite(STEP1, HIGH);
     delay(6);
@@ -318,12 +319,12 @@ void run()
   }
   else if (ans1 < PHR_ANS && ans2 >= PHR_ANS)
   {
-    turn_left_50();
+    turn_left_135();
     // read_sensor();
   }
   else if (ans1 >= PHR_ANS && ans2 < PHR_ANS)
   {
-    turn_right_50();
+    turn_right_135();
     // read_sensor();
   }
   for(int l=0;l<27;l++){
